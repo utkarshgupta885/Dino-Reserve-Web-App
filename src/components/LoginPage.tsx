@@ -4,6 +4,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import dinologo from './dinologo.png';
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -37,7 +38,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 w-24 h-24 bg-green-100 rounded-full flex items-center justify-center">
               <ImageWithFallback 
-                src="https://images.unsplash.com/photo-1728848447975-dc7f2aad30af?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjdXRlJTIwY2FydG9vbiUyMGRpbm9zYXVyJTIwaWxsdXN0cmF0aW9ufGVufDF8fHx8MTc1OTE0MDczMnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+                src={dinologo}
                 alt="Cute dino mascot"
                 className="w-16 h-16 object-cover rounded-full"
               />

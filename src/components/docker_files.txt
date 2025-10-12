@@ -1,0 +1,153 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:14-alpine
+    container_name: dinoreserve_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dinoreserve
+      POSTGRES_USER: dinouser
+      POSTGRES_PASSWORD: dinopass123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - dino_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dinouser -d dinoreserve"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dinoreserve_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://dinouser:dinopass123@db:5432/dinoreserve
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - dino_network
+    volumes:
+      - ./backend:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # React Frontend (for production)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: dinoreserve_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - dino_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  dino_network:
+    driver: bridge
+
+# ============================================
+# Backend Dockerfile
+# Save as: backend/Dockerfile
+
+# FROM python:3.11-slim
+# 
+# WORKDIR /app
+# 
+# # Install system dependencies
+# RUN apt-get update && apt-get install -y \
+#     gcc \
+#     postgresql-client \
+#     && rm -rf /var/lib/apt/lists/*
+# 
+# # Copy requirements and install Python dependencies
+# COPY requirements.txt .
+# RUN pip install --no-cache-dir -r requirements.txt
+# 
+# # Copy application code
+# COPY . .
+# 
+# # Expose port
+# EXPOSE 8000
+# 
+# # Run the application
+# CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# ============================================
+# Frontend Dockerfile
+# Save as: frontend/Dockerfile
+
+# # Build stage
+# FROM node:18-alpine AS builder
+# 
+# WORKDIR /app
+# 
+# # Copy package files
+# COPY package*.json ./
+# 
+# # Install dependencies
+# RUN npm ci
+# 
+# # Copy source code
+# COPY . .
+# 
+# # Build the app
+# RUN npm run build
+# 
+# # Production stage
+# FROM nginx:alpine
+# 
+# # Copy built assets from builder
+# COPY --from=builder /app/dist /usr/share/nginx/html
+# 
+# # Copy nginx configuration
+# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# 
+# # Expose port
+# EXPOSE 80
+# 
+# CMD ["nginx", "-g", "daemon off;"]
+
+# ============================================
+# Nginx Configuration
+# Save as: frontend/nginx.conf
+
+# server {
+#     listen 80;
+#     server_name localhost;
+#     root /usr/share/nginx/html;
+#     index index.html;
+# 
+#     location / {
+#         try_files $uri $uri/ /index.html;
+#     }
+# 
+#     location /api {
+#         proxy_pass http://backend:8000;
+#         proxy_http_version 1.1;
+#         proxy_set_header Upgrade $http_upgrade;
+#         proxy_set_header Connection 'upgrade';
+#         proxy_set_header Host $host;
+#         proxy_cache_bypass $http_upgrade;
+#     }
+# }
